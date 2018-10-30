@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_activity_grey_background">
+
+    <include
+        android:id="@+id/custom_toolbar"
+        layout="@layout/custom_toolbar" />
+
+    <ImageView
+        android:id="@+id/imageview_help_mainimage"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:scaleType="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/custom_toolbar"
+        app:srcCompat="@drawable/ic_time_to_leave_illustration" />
+
+    <TextView
+        android:id="@+id/textview_help_title"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xxlarge"
+        android:fontFamily="@font/gotham_bold"
+        android:text="@string/time_to_leave_help_title"
+        android:textAlignment="center"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/text_xlarge"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageview_help_mainimage" />
+
+    <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/textview_help_description"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="@dimen/size_none"
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:layout_marginEnd="@dimen/margin_large"
+        android:layout_marginStart="@dimen/margin_large"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:fontFamily="@font/gotham_book"
+        android:text="@string/time_to_leave_help_text"
+        android:textAlignment="center"
+        android:textSize="@dimen/text_small"
+        app:autoSizeMaxTextSize="@dimen/text_xxlarge"
+        app:autoSizeMinTextSize="@dimen/text_small"
+        app:autoSizeStepGranularity="@dimen/text_autosize_granularity"
+        app:autoSizeTextType="uniform"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textview_help_title" />
+
+</android.support.constraint.ConstraintLayout>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".CountdownActivity">
+
+    <include
+        android:id="@+id/custom_toolbar"
+        layout="@layout/custom_toolbar" />
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/layout_countdown_timer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/background_elevation_main"
+        android:elevation="@dimen/elevation_small"
+        android:paddingBottom="@dimen/spacing_xxlarge"
+        android:paddingTop="@dimen/spacing_xxlarge"
+        app:layout_constraintBottom_toTopOf="@+id/mapFragment"
+        app:layout_constraintTop_toBottomOf="@+id/custom_toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/text_view_countdown_timer_hour"
+            android:fontFamily="@font/gotham_medium"
+            android:textSize="@dimen/text_xxxlarge"
+            android:textColor="@android:color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xlarge"
+            android:text="@string/time_default_value_hour"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/text_view_countdown_timer_minute"
+            android:fontFamily="@font/gotham_medium"
+            android:textSize="@dimen/text_xlarger"
+            android:textColor="@color/color_countdown_dark_grey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_tiny"
+            android:text="@string/time_default_value_min"
+            app:layout_constraintStart_toEndOf="@+id/text_view_countdown_timer_hour"
+            app:layout_constraintTop_toTopOf="@+id/text_view_countdown_timer_hour" />
+
+        <TextView
+            android:id="@+id/text_view_countdown_timer_second"
+            android:fontFamily="@font/gotham_medium"
+            android:textSize="@dimen/text_small"
+            android:textColor="@android:color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_tiny"
+            android:text="@string/time_default_value_sec"
+            app:layout_constraintBaseline_toBaselineOf="@+id/text_view_countdown_timer_hour"
+            app:layout_constraintStart_toEndOf="@+id/text_view_countdown_timer_hour" />
+
+        <ImageView
+            android:id="@+id/img_countdown_by_what"
+            android:layout_width="@dimen/countdown_by_what_width"
+            android:layout_height="@dimen/countdown_by_what_height"
+            android:layout_marginEnd="@dimen/spacing_xlarge"
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:background="@android:color/white"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/text_view_countdown_timer_hour"
+            app:srcCompat="@drawable/button_main_travel_mode_car" />
+
+        <TextView
+            android:id="@+id/text_countdown_travel_time"
+            style="@style/style_countdown_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_super_tiny"
+            android:background="@color/color_countdown_dark_grey"
+            android:paddingBottom="@dimen/spacing_tiny"
+            android:paddingLeft="@dimen/spacing_medium"
+            android:paddingRight="@dimen/spacing_medium"
+            android:paddingTop="@dimen/spacing_tiny"
+            android:text="@string/travel_time_default_value"
+            app:layout_constraintStart_toStartOf="@+id/text_view_countdown_timer_hour"
+            app:layout_constraintTop_toBottomOf="@+id/text_view_countdown_timer_hour" />
+
+        <TextView
+            android:id="@+id/text_countdown_preparation"
+            style="@style/style_countdown_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/color_countdown_green_preparation"
+            android:paddingBottom="@dimen/spacing_tiny"
+            android:paddingLeft="@dimen/spacing_medium"
+            android:paddingRight="@dimen/spacing_medium"
+            android:paddingTop="@dimen/spacing_tiny"
+            android:text="@string/preparation_default_value"
+            app:layout_constraintStart_toEndOf="@+id/text_countdown_travel_time"
+            app:layout_constraintTop_toTopOf="@+id/text_countdown_travel_time" />
+
+    </android.support.constraint.ConstraintLayout>
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.tomtom.online.sdk.map.MapFragment"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="@dimen/size_none"
+        android:layout_marginTop="@dimen/size_none"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_countdown_timer"/>
+
+</android.support.constraint.ConstraintLayout>
