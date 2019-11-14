@@ -1,7 +1,7 @@
 package com.tomtom.timetoleave;
 
-import android.support.design.widget.BaseTransientBottomBar;
-import android.support.v4.view.ViewCompat;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import androidx.core.view.ViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
