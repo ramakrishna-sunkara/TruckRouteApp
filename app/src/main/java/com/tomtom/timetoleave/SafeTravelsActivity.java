@@ -1,12 +1,12 @@
 package com.tomtom.timetoleave;
 
 import android.content.Intent;
+import android.os.Bundle;
+import android.widget.Button;
+
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import android.os.Bundle;
 import androidx.appcompat.widget.Toolbar;
-import android.view.View;
-import android.widget.Button;
 
 public class SafeTravelsActivity extends AppCompatActivity {
 
@@ -18,12 +18,9 @@ public class SafeTravelsActivity extends AppCompatActivity {
         initToolbarSettings();
 
         Button btnNextTrip = findViewById(R.id.button_safe_travels_next_trip);
-        btnNextTrip.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(SafeTravelsActivity.this, MainActivity.class);
-                startActivity(intent);
-            }
+        btnNextTrip.setOnClickListener(v -> {
+            Intent intent = new Intent(SafeTravelsActivity.this, MainActivity.class);
+            startActivity(intent);
         });
     }
 

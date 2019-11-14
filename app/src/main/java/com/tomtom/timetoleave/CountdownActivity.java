@@ -3,23 +3,22 @@ package com.tomtom.timetoleave;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
-import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.map.Icon;
@@ -81,10 +80,10 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
     private LatLng destination;
     private LatLng departure;
     private CountDownTimer countDownTimer;
-    private Handler timerHandler = new Handler();
+    private final Handler timerHandler = new Handler();
     private RoutingApi routingApi;
 
-    private Runnable requestRouteRunnable = new Runnable() {
+    private final Runnable requestRouteRunnable = new Runnable() {
         @Override
         public void run() {
             requestRoute(departure, destination, travelMode, arriveAt);
@@ -232,18 +231,12 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
                         private void createDialogWithCustomButtons() {
                             AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
                             builder.setMessage(getString(R.string.dialog_time_to_leave))
-                                    .setPositiveButton(R.string.dialog_on_my_way, new DialogInterface.OnClickListener() {
-                                        public void onClick(DialogInterface dialog, int id) {
-                                            hideDialog(dialogInfo);
-                                            Intent intent = new Intent(CountdownActivity.this, SafeTravelsActivity.class);
-                                            startActivity(intent);
-                                        }
+                                    .setPositiveButton(R.string.dialog_on_my_way, (dialog, id) -> {
+                                        hideDialog(dialogInfo);
+                                        Intent intent = new Intent(CountdownActivity.this, SafeTravelsActivity.class);
+                                        startActivity(intent);
                                     })
-                                    .setNegativeButton(R.string.dialog_whatever, new DialogInterface.OnClickListener() {
-                                        public void onClick(DialogInterface dialog, int id) {
-                                            createDialogWithCustomLayout();
-                                        }
-                                    });
+                                    .setNegativeButton(R.string.dialog_whatever, (dialog, id) -> createDialogWithCustomLayout());
                             hideDialog(dialogInfo);
                             dialogInfo = builder.create();
                             dialogInfo.setCanceledOnTouchOutside(false);
@@ -255,12 +248,10 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
                             LayoutInflater inflater = getLayoutInflater();
 
                             builder.setView(inflater.inflate(R.layout.dialog_you_are_over_time, null))
-                                    .setPositiveButton(R.string.dialog_next_time_ill_do_better, new DialogInterface.OnClickListener() {
-                                        public void onClick(DialogInterface dialog, int id) {
-                                            hideDialog(dialogInfo);
-                                            Intent intent = new Intent(CountdownActivity.this, MainActivity.class);
-                                            startActivity(intent);
-                                        }
+                                    .setPositiveButton(R.string.dialog_next_time_ill_do_better, (dialog, id) -> {
+                                        hideDialog(dialogInfo);
+                                        Intent intent = new Intent(CountdownActivity.this, MainActivity.class);
+                                        startActivity(intent);
                                     });
                             hideDialog(dialogInfo);
                             dialogInfo = builder.create();
@@ -394,7 +385,7 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void initBundleSettings(Bundle settings) {
-        Long arriveAtMillis = settings.getLong(BUNDLE_ARRIVE_AT);
+        long arriveAtMillis = settings.getLong(BUNDLE_ARRIVE_AT);
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(arriveAtMillis);
         arriveAt = calendar.getTime();
@@ -407,15 +398,13 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
     private int getTravelModeIcon(TravelMode selectedTravelMode) {
         int iconResource;
         switch (selectedTravelMode) {
-            case CAR:
-                iconResource = R.drawable.button_main_travel_mode_car;
-                break;
             case TAXI:
                 iconResource = R.drawable.button_main_travel_mode_cab;
                 break;
             case PEDESTRIAN:
                 iconResource = R.drawable.button_main_travel_mode_by_foot;
                 break;
+            case CAR:
             default:
                 iconResource = R.drawable.button_main_travel_mode_car;
                 break;
@@ -426,12 +415,7 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
     private void createWarningSnackBar() {
         ViewGroup view = findViewById(android.R.id.content);
         warningSnackbar = CustomSnackbar.make(view, CustomSnackbar.LENGTH_INDEFINITE, R.layout.snackbar_recalculation_warning);
-        warningSnackbar.setAction(getString(R.string.button_ok), new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                warningSnackbar.dismiss();
-            }
-        });
+        warningSnackbar.setAction(getString(R.string.button_ok), v -> warningSnackbar.dismiss());
         setCustomSnackbar(warningSnackbar);
     }
 
