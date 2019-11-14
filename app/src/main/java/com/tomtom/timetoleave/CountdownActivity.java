@@ -163,7 +163,7 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
                                     }
                                     previousTravelTime = currentTravelTime;
                                     displayRouteOnMap(fullRoute.getCoordinates());
-                                    setupCountDownTimer(fullRoute.getSummary().getDepartureTime());
+                                    setupCountDownTimer(fullRoute.getSummary().getDepartureTimeWithZone().toDate());
                                 } else {
                                     infoSnackbar.show();
                                 }
