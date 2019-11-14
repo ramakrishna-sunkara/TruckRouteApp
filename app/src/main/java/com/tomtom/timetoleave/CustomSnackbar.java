@@ -1,12 +1,14 @@
 package com.tomtom.timetoleave;
 
-import android.support.design.widget.BaseTransientBottomBar;
-import android.support.v4.view.ViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import androidx.core.view.ViewCompat;
+
+import com.google.android.material.snackbar.BaseTransientBottomBar;
 
 public class CustomSnackbar extends BaseTransientBottomBar<CustomSnackbar> {
     private CustomSnackbar(ViewGroup parent, View content,
@@ -17,7 +19,7 @@ public class CustomSnackbar extends BaseTransientBottomBar<CustomSnackbar> {
     private static class ContentViewCallback implements
             BaseTransientBottomBar.ContentViewCallback {
 
-        private View content;
+        private final View content;
 
         private ContentViewCallback(View content) {
             this.content = content;
@@ -61,11 +63,6 @@ public class CustomSnackbar extends BaseTransientBottomBar<CustomSnackbar> {
         Button actionView = getView().findViewById(R.id.button_dialog_recalculation_ok);
         actionView.setText(text);
         actionView.setVisibility(View.VISIBLE);
-        actionView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                listener.onClick(view);
-            }
-        });
+        actionView.setOnClickListener(listener);
     }
 }

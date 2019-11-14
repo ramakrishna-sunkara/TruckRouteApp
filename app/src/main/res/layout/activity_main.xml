@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <android.support.constraint.ConstraintLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/layout_main_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -19,7 +19,7 @@
                 android:id="@+id/custom_toolbar"
                 layout="@layout/custom_toolbar" />
 
-            <android.support.constraint.ConstraintLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/layout_main_locations"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -27,7 +27,7 @@
                 android:elevation="@dimen/main_locations_layout_elevation"
                 app:layout_constraintTop_toBottomOf="@+id/custom_toolbar">
 
-                <android.support.constraint.ConstraintLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layout_main_locations_departure"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -74,9 +74,9 @@
                         app:layout_constraintTop_toTopOf="@+id/atv_main_departure_location"
                         app:srcCompat="@drawable/ic_close" />
 
-                </android.support.constraint.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <android.support.constraint.ConstraintLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layout_main_locations_arrival"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -126,11 +126,11 @@
                         app:layout_constraintTop_toTopOf="@+id/atv_main_destination_location"
                         app:srcCompat="@drawable/ic_close" />
 
-                </android.support.constraint.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
-            </android.support.constraint.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <android.support.constraint.ConstraintLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/layout_main_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -139,7 +139,7 @@
                 app:layout_constraintTop_toBottomOf="@id/layout_main_locations"
                 app:layout_constraintStart_toStartOf="parent">
 
-                <android.support.constraint.ConstraintLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layout_main_settings_arrive_at"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -168,6 +168,7 @@
                         android:text="@string/time_default_value"
                         android:textColor="@color/color_all_text"
                         android:textSize="@dimen/text_xxlarge"
+                        app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 
                     <TextView
@@ -183,9 +184,9 @@
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/text_view_main_arrive_at_hour" />
 
-                </android.support.constraint.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <android.support.constraint.ConstraintLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layout_main_settings_preparation_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -253,11 +254,11 @@
                         app:layout_constraintStart_toEndOf="@+id/button_main_preparation_second"
                         app:layout_constraintTop_toTopOf="parent" />
 
-                </android.support.constraint.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
-            </android.support.constraint.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <android.support.constraint.ConstraintLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/layout_main_by_what"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/main_layout_by_what_height"
@@ -336,10 +337,10 @@
                     app:layout_constraintEnd_toEndOf="@+id/button_main_on_foot"
                     app:layout_constraintStart_toStartOf="@+id/button_main_on_foot" />
 
-            </android.support.constraint.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
 
-            <android.support.constraint.ConstraintLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/layout_main_start"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -367,9 +368,9 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-            </android.support.constraint.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-        </android.support.constraint.ConstraintLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </ScrollView>
-</android.support.constraint.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,11 +1,11 @@
 package com.tomtom.timetoleave;
 
 import android.os.Bundle;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.widget.ImageView;
+
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 public class HelpActivity extends AppCompatActivity{
 
@@ -17,12 +17,7 @@ public class HelpActivity extends AppCompatActivity{
         initToolbarSettings();
 
         ImageView imgHelp = findViewById(R.id.imageview_help_mainimage);
-        imgHelp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        imgHelp.setOnClickListener(v -> finish());
     }
 
     private void initToolbarSettings() {

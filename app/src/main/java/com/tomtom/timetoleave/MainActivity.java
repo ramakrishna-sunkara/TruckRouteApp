@@ -8,11 +8,6 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
@@ -21,13 +16,18 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.location.LocationRequest;
 import com.tomtom.online.sdk.common.location.LatLng;
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     private long arrivalTimeInMillis;
     private AutoCompleteTextView atvDepartureLocation;
     private AutoCompleteTextView atvDestinationLocation;
-    private Handler searchTimerHandler = new Handler();
+    private final Handler searchTimerHandler = new Handler();
     private Runnable searchRunnable;
     private ArrayAdapter<String> searchAdapter;
     private List<String> searchAutocompleteList;
@@ -195,17 +195,14 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case PERMISSION_REQUEST_LOCATION:
-                if(grantResults.length >= 2 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED &&
-                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                    locationSource.activate();
-                }
-                else {
-                    Toast.makeText(this, R.string.location_permissions_denied, Toast.LENGTH_SHORT).show();
-                }
-                break;
+        if (requestCode == PERMISSION_REQUEST_LOCATION) {
+            if (grantResults.length >= 2 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                    grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                locationSource.activate();
+            } else {
+                Toast.makeText(this, R.string.location_permissions_denied, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -222,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     private void showHelpOnFirstRun() {
         String sharedPreferenceName = getString(R.string.shared_preference_name);
         String sharedPreferenceIsFirstRun = getString(R.string.shared_preference_first_run);
-        Boolean isFirstRun = getSharedPreferences(sharedPreferenceName, MODE_PRIVATE)
+        boolean isFirstRun = getSharedPreferences(sharedPreferenceName, MODE_PRIVATE)
                 .getBoolean(sharedPreferenceIsFirstRun, true);
         if (isFirstRun) {
             showHelpActivity();
@@ -249,9 +246,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         autoCompleteTextView.addTextChangedListener(new BaseTextWatcher() {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (searchTimerHandler != null) {
-                    searchTimerHandler.removeCallbacks(searchRunnable);
-                }
+                searchTimerHandler.removeCallbacks(searchRunnable);
             }
 
             @Override
@@ -259,12 +254,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
                 if (s.length() > 0) {
                     imageButton.setVisibility(View.VISIBLE);
                     if (s.length() >= AUTOCOMPLETE_SEARCH_THRESHOLD) {
-                        searchRunnable = new Runnable() {
-                            @Override
-                            public void run() {
-                                searchAddress(s.toString(), autoCompleteTextView);
-                            }
-                        };
+                        searchRunnable = () -> searchAddress(s.toString(), autoCompleteTextView);
                         searchAdapter.clear();
                         searchTimerHandler.postDelayed(searchRunnable, AUTOCOMPLETE_SEARCH_DELAY_MILLIS);
                     }
@@ -273,17 +263,14 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
                 }
             }
         });
-        autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String item = (String) parent.getItemAtPosition(position);
-                if (autoCompleteTextView == atvDepartureLocation) {
-                    latLngDeparture = searchResultsMap.get(item);
-                } else if (autoCompleteTextView == atvDestinationLocation) {
-                    latLngDestination = searchResultsMap.get(item);
-                }
-                hideKeyboard(view);
+        autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
+            String item = (String) parent.getItemAtPosition(position);
+            if (autoCompleteTextView == atvDepartureLocation) {
+                latLngDeparture = searchResultsMap.get(item);
+            } else if (autoCompleteTextView == atvDestinationLocation) {
+                latLngDestination = searchResultsMap.get(item);
             }
+            hideKeyboard(view);
         });
     }
 
@@ -347,33 +334,27 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     }
 
     private void setClearButtonToAutocompleteField(final AutoCompleteTextView autoCompleteTextView, final ImageButton imageButton) {
-        imageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                autoCompleteTextView.setText("");
-                autoCompleteTextView.requestFocus();
-                imageButton.setVisibility(View.GONE);
-            }
+        imageButton.setOnClickListener(v -> {
+            autoCompleteTextView.setText("");
+            autoCompleteTextView.requestFocus();
+            imageButton.setVisibility(View.GONE);
         });
     }
 
     private void initByWhenSection() {
-        setArriveAtCalendar(ARRIVE_TIME_AHEAD_HOURS);
+        setArriveAtCalendar();
         textViewArriveAtHour = findViewById(R.id.text_view_main_arrive_at_hour);
         textViewArriveAtAmPm = findViewById(R.id.text_view_main_arrive_at_am_pm);
         setTimerDisplay();
-        textViewArriveAtHour.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DialogFragment timePickerFragment = new TimePickerFragment();
-                timePickerFragment.show(getFragmentManager(), TIME_PICKER_DIALOG_TAG);
-            }
+        textViewArriveAtHour.setOnClickListener(v -> {
+            DialogFragment timePickerFragment = new TimePickerFragment();
+            timePickerFragment.show(getFragmentManager(), TIME_PICKER_DIALOG_TAG);
         });
     }
 
-    private void setArriveAtCalendar(int aheadHours) {
+    private void setArriveAtCalendar() {
         calArriveAt = Calendar.getInstance();
-        calArriveAt.add(Calendar.HOUR, aheadHours);
+        calArriveAt.add(Calendar.HOUR, MainActivity.ARRIVE_TIME_AHEAD_HOURS);
     }
 
     public void setTimerDisplay() {
@@ -408,13 +389,10 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     }
 
     private View.OnClickListener setByWhatButtonListener(final TravelMode travelMode) {
-        return new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                deselectByWhatButtons();
-                v.setSelected(true);
-                travelModeSelected = travelMode;
-            }
+        return v -> {
+            deselectByWhatButtons();
+            v.setSelected(true);
+            travelModeSelected = travelMode;
         };
     }
 
@@ -437,13 +415,10 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     }
 
     private View.OnClickListener setPreparationButtonListener(final int preparationTimeInMinutes) {
-        return new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                deselectPreparationButtons();
-                selectPreparationButton(v);
-                preparationTimeSelected = preparationTimeInMinutes;
-            }
+        return v -> {
+            deselectPreparationButtons();
+            selectPreparationButton(v);
+            preparationTimeSelected = preparationTimeInMinutes;
         };
     }
 
@@ -465,31 +440,28 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
 
     private void initStartSection() {
         Button buttonStart = findViewById(R.id.button_main_start);
-        buttonStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                long currentTimeInMillis = getCurrentTimeInMillis();
-                arrivalTimeInMillis = getArrivalTimeInMillis();
+        buttonStart.setOnClickListener(v -> {
+            long currentTimeInMillis = getCurrentTimeInMillis();
+            arrivalTimeInMillis = getArrivalTimeInMillis();
 
-                if (departureFiledIsEmpty()) {
-                    initDepartureWithDefaultValue();
-                } else if (destinationFieldIsEmpty()) {
-                    initDestinationWithDefaultValue();
-                }
-
-                if (currentTimeInMillis >= arrivalTimeInMillis) {
-                    calArriveAt.add(Calendar.DAY_OF_MONTH, 1);
-                    arrivalTimeInMillis = getArrivalTimeInMillis();
-                }
-
-                Intent intent = CountdownActivity.prepareIntent(MainActivity.this,
-                        latLngDeparture,
-                        latLngDestination,
-                        travelModeSelected,
-                        arrivalTimeInMillis,
-                        preparationTimeSelected);
-                startActivity(intent);
+            if (departureFiledIsEmpty()) {
+                initDepartureWithDefaultValue();
+            } else if (destinationFieldIsEmpty()) {
+                initDestinationWithDefaultValue();
             }
+
+            if (currentTimeInMillis >= arrivalTimeInMillis) {
+                calArriveAt.add(Calendar.DAY_OF_MONTH, 1);
+                arrivalTimeInMillis = getArrivalTimeInMillis();
+            }
+
+            Intent intent = CountdownActivity.prepareIntent(MainActivity.this,
+                    latLngDeparture,
+                    latLngDestination,
+                    travelModeSelected,
+                    arrivalTimeInMillis,
+                    preparationTimeSelected);
+            startActivity(intent);
         });
     }
 
