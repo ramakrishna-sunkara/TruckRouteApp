@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_activity_grey_background"
+    tools:context=".SafeTravelsActivity">
+
+    <include
+        android:id="@+id/custom_toolbar"
+        layout="@layout/custom_toolbar" />
+
+    <ImageView
+        android:id="@+id/imageview_safe_travels_mainimage"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_large"
+        android:scaleType="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/custom_toolbar"
+        app:srcCompat="@drawable/ic_time_to_leave_illustration" />
+
+    <TextView
+        android:id="@+id/textview_safe_travels_text"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xxlarge"
+        android:fontFamily="@font/gotham_bold"
+        android:text="@string/safe_travels_text"
+        android:textAlignment="center"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/text_xlarge"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageview_safe_travels_mainimage" />
+
+    <Button
+        android:id="@+id/button_safe_travels_next_trip"
+        android:fontFamily="@font/gotham_bold"
+        android:textSize="@dimen/text_medium"
+        android:textColor="@color/white_fully_opaque"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="@dimen/safe_travels_button_height"
+        android:layout_marginBottom="@dimen/spacing_xxxlarge"
+        android:layout_marginEnd="@dimen/spacing_large"
+        android:layout_marginStart="@dimen/spacing_large"
+        android:background="@drawable/button_main_green"
+        android:elevation="@dimen/elevation_small"
+        android:stateListAnimator="@null"
+        android:text="@string/button_next_trip"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
