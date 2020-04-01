@@ -17,7 +17,7 @@ public class CustomSnackbar extends BaseTransientBottomBar<CustomSnackbar> {
     }
 
     private static class ContentViewCallback implements
-            BaseTransientBottomBar.ContentViewCallback {
+            com.google.android.material.snackbar.ContentViewCallback {
 
         private final View content;
 

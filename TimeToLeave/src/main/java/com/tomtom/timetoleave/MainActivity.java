@@ -1,7 +1,6 @@
 package com.tomtom.timetoleave;
 
 import android.Manifest;
-import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,7 +10,6 @@ import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,13 +26,14 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.DialogFragment;
 
 import com.google.android.gms.location.LocationRequest;
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.common.permission.AndroidPermissionChecker;
 import com.tomtom.online.sdk.common.permission.PermissionChecker;
+import com.tomtom.online.sdk.location.FusedLocationSource;
 import com.tomtom.online.sdk.location.LocationSource;
-import com.tomtom.online.sdk.location.LocationSourceFactory;
 import com.tomtom.online.sdk.location.LocationUpdateListener;
 import com.tomtom.online.sdk.routing.data.TravelMode;
 import com.tomtom.online.sdk.search.OnlineSearchApi;
@@ -56,6 +55,7 @@ import java.util.Map;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements LocationUpdateListener {
 
@@ -185,11 +185,8 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_LOCATION);
         }
-        LocationSourceFactory locationSourceFactory = new LocationSourceFactory();
-        locationSource = locationSourceFactory.createDefaultLocationSource(this, this,  LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setFastestInterval(2000)
-                .setInterval(5000));
+        locationSource = new FusedLocationSource(this, LocationRequest.create());
+        locationSource.addLocationUpdateListener(this);
     }
 
     @Override
@@ -328,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
                     @Override
                     public void onError(Throwable e) {
                         Toast.makeText(MainActivity.this, getString(R.string.toast_error_message_error_getting_location, e.getLocalizedMessage()), Toast.LENGTH_LONG).show();
-                        Log.e(LOG_TAG, getString(R.string.toast_error_message_error_getting_location, e.getLocalizedMessage()), e);
+                        Timber.e(e, getString(R.string.toast_error_message_error_getting_location, e.getLocalizedMessage()));
                     }
                 });
     }
@@ -348,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         setTimerDisplay();
         textViewArriveAtHour.setOnClickListener(v -> {
             DialogFragment timePickerFragment = new TimePickerFragment();
-            timePickerFragment.show(getFragmentManager(), TIME_PICKER_DIALOG_TAG);
+            timePickerFragment.show(getSupportFragmentManager(), TIME_PICKER_DIALOG_TAG);
         });
     }
 
