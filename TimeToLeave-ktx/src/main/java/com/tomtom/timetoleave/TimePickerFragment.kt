@@ -7,11 +7,7 @@ import android.app.Dialog
 import java.util.Calendar
 import android.widget.TimePicker
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.FragmentActivity
 
-/**
- * A simple [FragmentActivity] subclass.
- */
 class TimePickerFragment : DialogFragment(), TimePickerDialog.OnTimeSetListener {
 
     private lateinit var mainActivity: MainActivity

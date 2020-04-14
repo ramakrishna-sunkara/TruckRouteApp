@@ -8,7 +8,7 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="CenterOnCurrentLocationView" parent="BaseCompactView">
+    <style name="CenterOnCurrentLocationView" parent="BaseCenterOnCurrentLocationView">
         <item name="android:layout_gravity">bottom|start</item>
         <item name="android:layout_marginStart">@dimen/spacing_small</item>
         <item name="android:layout_marginBottom">@dimen/spacing_xlarge</item>

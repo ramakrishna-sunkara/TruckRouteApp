@@ -148,9 +148,6 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(object : DisposableSingleObserver<RouteResponse>() {
 
-                        private val isCountdownTimerSet: Boolean
-                            get() = countDownTimer != null
-
                         override fun onSuccess(routeResponse: RouteResponse) {
                             hideDialog(dialogInProgress)
                             if (routeResponse.hasResults()) {
@@ -179,9 +176,8 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
                         }
 
                         private fun setupCountDownTimer(departure: Date) {
-                            if (isCountdownTimerSet) {
-                                countDownTimer?.cancel()
-                            }
+                            countDownTimer?.cancel()
+
                             val now = Calendar.getInstance().time
                             val preparationTimeMillis = preparationTime * ONE_MINUTE_IN_MILLIS
                             val timeToLeave = departure.time - now.time
@@ -228,7 +224,7 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
                         private fun createDialogWithCustomButtons() {
                             val builder = AlertDialog.Builder(this@CountdownActivity)
                             builder.setMessage(getString(R.string.dialog_time_to_leave))
-                                    .setPositiveButton(R.string.dialog_on_my_way) { dialog, id ->
+                                    .setPositiveButton(R.string.dialog_on_my_way) { _, _ ->
                                         hideDialog(dialogInfo)
                                         val intent = Intent(this@CountdownActivity, SafeTravelsActivity::class.java)
                                         startActivity(intent)

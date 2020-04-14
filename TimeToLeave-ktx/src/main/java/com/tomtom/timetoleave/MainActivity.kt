@@ -204,7 +204,7 @@ class MainActivity : AppCompatActivity(), LocationUpdateListener {
     }
 
     private fun setTextWatcherToAutoCompleteField(autoCompleteTextView: AutoCompleteTextView, imageButton: ImageButton) {
-        autoCompleteTextView.setAdapter<ArrayAdapter<String>>(searchAdapter)
+        autoCompleteTextView.setAdapter(searchAdapter)
         autoCompleteTextView.addTextChangedListener(object : BaseTextWatcher() {
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                 searchRunnable?.let {
