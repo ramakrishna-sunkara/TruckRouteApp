@@ -35,7 +35,7 @@ import com.tomtom.online.sdk.common.permission.PermissionChecker;
 import com.tomtom.online.sdk.location.FusedLocationSource;
 import com.tomtom.online.sdk.location.LocationSource;
 import com.tomtom.online.sdk.location.LocationUpdateListener;
-import com.tomtom.online.sdk.routing.data.TravelMode;
+import com.tomtom.online.sdk.routing.route.description.TravelMode;
 import com.tomtom.online.sdk.search.OnlineSearchApi;
 import com.tomtom.online.sdk.search.SearchApi;
 import com.tomtom.online.sdk.search.data.fuzzy.FuzzySearchQueryBuilder;
@@ -66,7 +66,6 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     private static final LatLng DEFAULT_DEPARTURE_LATLNG = new LatLng(52.376368, 4.908113);
     private static final LatLng DEFAULT_DESTINATION_LATLNG = new LatLng(52.3076865, 4.767424099999971);
     private static final String TIME_PICKER_DIALOG_TAG = "TimePicker";
-    private static final String LOG_TAG = "MainActivity";
     private static final int ARRIVE_TIME_AHEAD_HOURS = 5;
     private static final int AUTOCOMPLETE_SEARCH_DELAY_MILLIS = 600;
     private static final int AUTOCOMPLETE_SEARCH_THRESHOLD = 3;
@@ -156,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     }
 
     private void initTomTomServices() {
-        searchApi = OnlineSearchApi.create(this);
+        searchApi = OnlineSearchApi.create(this, BuildConfig.SEARCH_API_KEY);
     }
 
     private void initToolbarSettings() {
@@ -314,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
                 .subscribe(new DisposableSingleObserver<ReverseGeocoderSearchResponse>() {
                     @Override
                     public void onSuccess(ReverseGeocoderSearchResponse reverseGeocoderSearchResponse) {
-                        List addressesList = reverseGeocoderSearchResponse.getAddresses();
+                        List<ReverseGeocoderFullAddress> addressesList = reverseGeocoderSearchResponse.getAddresses();
                         if (!addressesList.isEmpty()) {
                             String address = ((ReverseGeocoderFullAddress) addressesList.get(0)).getAddress().getFreeformAddress();
                             autoCompleteTextView.setText(address);
@@ -500,7 +499,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         startActivity(helpIntent);
     }
 
-    private abstract class BaseTextWatcher implements TextWatcher {
+    private abstract static class BaseTextWatcher implements TextWatcher {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
         }

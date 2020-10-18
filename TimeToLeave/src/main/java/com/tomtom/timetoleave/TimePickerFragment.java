@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.widget.TimePicker;
 import androidx.fragment.app.DialogFragment;
+
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Calendar;
 
 
@@ -13,6 +16,7 @@ public class TimePickerFragment extends DialogFragment implements TimePickerDial
 
     private MainActivity mainActivity;
 
+    @NotNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState){
         mainActivity = (MainActivity)getActivity();

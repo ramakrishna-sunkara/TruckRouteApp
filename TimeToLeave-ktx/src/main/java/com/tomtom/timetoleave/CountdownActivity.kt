@@ -14,27 +14,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.BaseTransientBottomBar
-
 import com.tomtom.online.sdk.common.location.LatLng
-import com.tomtom.online.sdk.map.Icon
-import com.tomtom.online.sdk.map.MapFragment
-import com.tomtom.online.sdk.map.OnMapReadyCallback
-import com.tomtom.online.sdk.map.RouteBuilder
-import com.tomtom.online.sdk.map.TomtomMap
+import com.tomtom.online.sdk.common.util.DateFormatter
+import com.tomtom.online.sdk.map.*
 import com.tomtom.online.sdk.routing.OnlineRoutingApi
 import com.tomtom.online.sdk.routing.RoutingApi
-import com.tomtom.online.sdk.routing.data.RouteQueryBuilder
-import com.tomtom.online.sdk.routing.data.RouteResponse
-import com.tomtom.online.sdk.routing.data.RouteType
-import com.tomtom.online.sdk.routing.data.TravelMode
-
-import java.util.concurrent.TimeUnit
-
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.observers.DisposableSingleObserver
-import io.reactivex.schedulers.Schedulers
+import com.tomtom.online.sdk.routing.RoutingException
+import com.tomtom.online.sdk.routing.route.*
+import com.tomtom.online.sdk.routing.route.description.TravelMode
 import kotlinx.android.synthetic.main.activity_countdown.*
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -136,198 +126,204 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun requestRoute(departure: LatLng?, destination: LatLng?, byWhat: TravelMode?, arriveAt: Date?) {
         if (!isInPauseMode) {
-            val routeQuery = RouteQueryBuilder(departure, destination)
-                    .withRouteType(RouteType.FASTEST)
-                    .withConsiderTraffic(true)
-                    .withTravelMode(byWhat)
-                    .withArriveAt(arriveAt)
+            val routeDescriptor = RouteDescriptor.Builder()
+                    .routeType(com.tomtom.online.sdk.routing.route.description.RouteType.FASTEST)
+                    .considerTraffic(true)
+                    .travelMode(byWhat!!)
                     .build()
 
-            routingApi.planRoute(routeQuery)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(object : DisposableSingleObserver<RouteResponse>() {
+            val routeCalculationDescriptor = RouteCalculationDescriptor.Builder()
+                    .routeDescription(routeDescriptor)
+                    .arriveAt(arriveAt!!)
+                    .build()
 
-                        override fun onSuccess(routeResponse: RouteResponse) {
-                            hideDialog(dialogInProgress)
-                            if (routeResponse.hasResults()) {
-                                val fullRoute = routeResponse.routes[0]
-                                val currentTravelTime = fullRoute.summary.travelTimeInSeconds
-                                if (previousTravelTime != currentTravelTime) {
-                                    val travelDifference = previousTravelTime - currentTravelTime
-                                    if (previousTravelTime != 0) {
-                                        showWarningSnackbar(prepareWarningMessage(travelDifference))
-                                    }
-                                    previousTravelTime = currentTravelTime
-                                    displayRouteOnMap(fullRoute.coordinates)
-                                    setupCountDownTimer(fullRoute.summary.departureTimeWithZone!!.toDate())
-                                } else {
-                                    infoSnackbar.show()
+            val routeSpecification = RouteSpecification.Builder(departure!!, destination!!)
+                    .routeCalculationDescriptor(routeCalculationDescriptor)
+                    .build()
+
+            routingApi.planRoute(routeSpecification, object : RouteCallback {
+                override fun onSuccess(routePlan: RoutePlan) {
+                    hideDialog(dialogInProgress)
+                    if (routePlan.routes.isNotEmpty()) {
+                        val fullRoute = routePlan.routes.first()
+                        val currentTravelTime = fullRoute.summary.travelTimeInSeconds
+                        if (previousTravelTime != currentTravelTime) {
+                            val travelDifference = previousTravelTime - currentTravelTime
+                            if (previousTravelTime != 0) {
+                                showWarningSnackbar(prepareWarningMessage(travelDifference))
+                            }
+                            previousTravelTime = currentTravelTime
+                            displayRouteOnMap(fullRoute.getCoordinates())
+                            val departureTimeString = fullRoute.summary.departureTime
+                            setupCountDownTimer(DateFormatter().formatWithTimeZone(departureTimeString).toDate())
+                        } else {
+                            infoSnackbar.show()
+
+                        }
+                    }
+                    timerHandler.removeCallbacks(requestRouteRunnable)
+                    timerHandler.postDelayed(requestRouteRunnable, ROUTE_RECALCULATION_DELAY.toLong())
+                }
+
+                override fun onError(error: RoutingException) {
+                    hideDialog(dialogInProgress)
+                    Toast.makeText(this@CountdownActivity, getString(R.string.toast_error_message_cannot_find_route), Toast.LENGTH_LONG).show()
+                    this@CountdownActivity.finish()
+                }
+
+                private fun setupCountDownTimer(departure: Date) {
+                    countDownTimer?.cancel()
+
+                    val now = Calendar.getInstance().time
+                    val preparationTimeMillis = preparationTime * ONE_MINUTE_IN_MILLIS
+                    val timeToLeave = departure.time - now.time
+                    countDownTimer = object : CountDownTimer(timeToLeave, ONE_SECOND_IN_MILLIS.toLong()) {
+                        override fun onTick(millisUntilFinished: Long) {
+                            updateCountdownTimerTextViews(millisUntilFinished)
+                            if (!isPreparationMode && millisUntilFinished <= preparationTimeMillis) {
+                                isPreparationMode = true
+                                setCountdownTimerColor(COUNTDOWN_MODE_PREPARATION)
+                                if (!isInPauseMode) {
+                                    showPreparationInfoDialog()
                                 }
                             }
+                        }
+
+                        override fun onFinish() {
                             timerHandler.removeCallbacks(requestRouteRunnable)
-                            timerHandler.postDelayed(requestRouteRunnable, ROUTE_RECALCULATION_DELAY.toLong())
-                        }
-
-                        override fun onError(e: Throwable) {
-                            hideDialog(dialogInProgress)
-                            Toast.makeText(this@CountdownActivity, getString(R.string.toast_error_message_cannot_find_route), Toast.LENGTH_LONG).show()
-                            this@CountdownActivity.finish()
-                        }
-
-                        private fun setupCountDownTimer(departure: Date) {
-                            countDownTimer?.cancel()
-
-                            val now = Calendar.getInstance().time
-                            val preparationTimeMillis = preparationTime * ONE_MINUTE_IN_MILLIS
-                            val timeToLeave = departure.time - now.time
-                            countDownTimer = object : CountDownTimer(timeToLeave, ONE_SECOND_IN_MILLIS.toLong()) {
-                                override fun onTick(millisUntilFinished: Long) {
-                                    updateCountdownTimerTextViews(millisUntilFinished)
-                                    if (!isPreparationMode && millisUntilFinished <= preparationTimeMillis) {
-                                        isPreparationMode = true
-                                        setCountdownTimerColor(COUNTDOWN_MODE_PREPARATION)
-                                        if (!isInPauseMode) {
-                                            showPreparationInfoDialog()
-                                        }
-                                    }
-                                }
-
-                                override fun onFinish() {
-                                    timerHandler.removeCallbacks(requestRouteRunnable)
-                                    setCountdownTimerColor(COUNTDOWN_MODE_FINISHED)
-                                    if (!isInPauseMode) {
-                                        createDialogWithCustomButtons()
-                                    }
-                                }
-                            }.start()
-                            text_countdown_travel_time.text = getString(R.string.travel_time_text, formatTimeFromSecondsDisplayWithoutSeconds(previousTravelTime.toLong()))
-                        }
-
-                        private fun prepareWarningMessage(travelDifference: Int): String {
-                            val travelTimeDifference = formatTimeFromSecondsDisplayWithSeconds(travelDifference.toLong())
-                            return getString(R.string.dialog_recalculation_info, getTimeInfoWithPrefix(travelDifference, travelTimeDifference))
-                        }
-
-                        private fun showWarningSnackbar(warningMessage: String) {
-                            warningSnackbar.apply {
-                                this.setText(warningMessage)
-                                this.show()
+                            setCountdownTimerColor(COUNTDOWN_MODE_FINISHED)
+                            if (!isInPauseMode) {
+                                createDialogWithCustomButtons()
                             }
                         }
+                    }.start()
+                    text_countdown_travel_time.text = getString(R.string.travel_time_text, formatTimeFromSecondsDisplayWithoutSeconds(previousTravelTime.toLong()))
+                }
 
-                        private fun getTimeInfoWithPrefix(travelDifference: Int, travelTimeDifference: String): String {
-                            val prefix = if (travelDifference < 0) "-" else "+"
-                            return prefix + travelTimeDifference
-                        }
+                private fun prepareWarningMessage(travelDifference: Int): String {
+                    val travelTimeDifference = formatTimeFromSecondsDisplayWithSeconds(travelDifference.toLong())
+                    return getString(R.string.dialog_recalculation_info, getTimeInfoWithPrefix(travelDifference, travelTimeDifference))
+                }
 
-                        private fun createDialogWithCustomButtons() {
-                            val builder = AlertDialog.Builder(this@CountdownActivity)
-                            builder.setMessage(getString(R.string.dialog_time_to_leave))
-                                    .setPositiveButton(R.string.dialog_on_my_way) { _, _ ->
-                                        hideDialog(dialogInfo)
-                                        val intent = Intent(this@CountdownActivity, SafeTravelsActivity::class.java)
-                                        startActivity(intent)
-                                    }
-                                    .setNegativeButton(R.string.dialog_whatever) { dialog, id -> createDialogWithCustomLayout() }
-                            hideDialog(dialogInfo)
-                            dialogInfo = builder.create().apply {
-                                this.setCanceledOnTouchOutside(false)
+                private fun showWarningSnackbar(warningMessage: String) {
+                    warningSnackbar.apply {
+                        this.setText(warningMessage)
+                        this.show()
+                    }
+                }
+
+                private fun getTimeInfoWithPrefix(travelDifference: Int, travelTimeDifference: String): String {
+                    val prefix = if (travelDifference < 0) "-" else "+"
+                    return prefix + travelTimeDifference
+                }
+
+                private fun createDialogWithCustomButtons() {
+                    val builder = AlertDialog.Builder(this@CountdownActivity)
+                    builder.setMessage(getString(R.string.dialog_time_to_leave))
+                            .setPositiveButton(R.string.dialog_on_my_way) { _, _ ->
+                                hideDialog(dialogInfo)
+                                val intent = Intent(this@CountdownActivity, SafeTravelsActivity::class.java)
+                                startActivity(intent)
                             }
-                            showDialog(dialogInfo)
-                        }
+                            .setNegativeButton(R.string.dialog_whatever) { _, _ -> createDialogWithCustomLayout() }
+                    hideDialog(dialogInfo)
+                    dialogInfo = builder.create().apply {
+                        this.setCanceledOnTouchOutside(false)
+                    }
+                    showDialog(dialogInfo)
+                }
 
-                        private fun createDialogWithCustomLayout() {
-                            val builder = AlertDialog.Builder(this@CountdownActivity)
-                            val inflater = layoutInflater
+                private fun createDialogWithCustomLayout() {
+                    val builder = AlertDialog.Builder(this@CountdownActivity)
+                    val inflater = layoutInflater
 
-                            builder.setView(inflater.inflate(R.layout.dialog_you_are_over_time, null))
-                                    .setPositiveButton(R.string.dialog_next_time_ill_do_better) { _, _ ->
-                                        hideDialog(dialogInfo)
-                                        val intent = Intent(this@CountdownActivity, MainActivity::class.java)
-                                        startActivity(intent)
-                                    }
-                            hideDialog(dialogInfo)
-                            dialogInfo = builder.create().apply {
-                                this.setCanceledOnTouchOutside(false)
+                    builder.setView(inflater.inflate(R.layout.dialog_you_are_over_time, null))
+                            .setPositiveButton(R.string.dialog_next_time_ill_do_better) { _, _ ->
+                                hideDialog(dialogInfo)
+                                val intent = Intent(this@CountdownActivity, MainActivity::class.java)
+                                startActivity(intent)
                             }
-                            showDialog(dialogInfo)
+                    hideDialog(dialogInfo)
+                    dialogInfo = builder.create().apply {
+                        this.setCanceledOnTouchOutside(false)
+                    }
+                    showDialog(dialogInfo)
+                }
+
+                private fun showPreparationInfoDialog() {
+                    dialogInfo = createSimpleAlertDialog(getString(R.string.dialog_start_preparation_text, preparationTime))
+                    showDialog(dialogInfo)
+                }
+
+                private fun createSimpleAlertDialog(message: String): AlertDialog {
+                    val builder = AlertDialog.Builder(this@CountdownActivity)
+                    builder.setMessage(message)
+                    return builder.create()
+                }
+
+                private fun setCountdownTimerColor(state: String) {
+                    val color = when (state) {
+                        COUNTDOWN_MODE_PREPARATION -> R.color.color_countdown_mode_preparation
+                        COUNTDOWN_MODE_FINISHED -> R.color.color_countdown_mode_finished
+                        else -> R.color.color_all_text
+                    }
+                    val resolvedColor = ContextCompat.getColor(this@CountdownActivity, color)
+                    text_view_countdown_timer_hour.setTextColor(resolvedColor)
+                    text_view_countdown_timer_minute.setTextColor(resolvedColor)
+                    text_view_countdown_timer_second.setTextColor(resolvedColor)
+                }
+
+                private fun updateCountdownTimerTextViews(millis: Long) {
+                    val hours = TimeUnit.MILLISECONDS.toHours(millis)
+                    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(hours)
+                    val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.HOURS.toSeconds(hours) - TimeUnit.MINUTES.toSeconds(minutes)
+                    text_view_countdown_timer_hour.text = getString(R.string.countdown_timer_hour, hours)
+                    text_view_countdown_timer_minute.text = getString(R.string.countdown_timer_min, minutes)
+                    text_view_countdown_timer_second.text = getString(R.string.countdown_timer_sec, seconds)
+                }
+
+                private fun displayRouteOnMap(coordinates: List<LatLng>) {
+                    val routeBuilder = RouteBuilder(coordinates)
+                            .startIcon(departureIcon)
+                            .endIcon(destinationIcon)
+                    tomtomMap.clear()
+                    tomtomMap.addRoute(routeBuilder)
+                    tomtomMap.displayRoutesOverview()
+                }
+
+                private fun formatTimeFromSecondsDisplayWithSeconds(secondsTotal: Long): String {
+                    return formatTimeFromSeconds(secondsTotal, true)
+                }
+
+                private fun formatTimeFromSecondsDisplayWithoutSeconds(secondsTotal: Long): String {
+                    return formatTimeFromSeconds(secondsTotal, false)
+                }
+
+                private fun formatTimeFromSeconds(secondsTotal: Long, showSeconds: Boolean): String {
+                    var secondsTotal = secondsTotal
+                    val timeFormatHoursMinutes = "H'h' m'min'"
+                    val timeFormatMinutes = "m'min'"
+                    val timeFormatSeconds = " s'sec'"
+
+                    val hours = TimeUnit.SECONDS.toHours(secondsTotal)
+                    val minutes = TimeUnit.SECONDS.toMinutes(secondsTotal) - TimeUnit.HOURS.toMinutes(hours)
+                    var timeFormat = ""
+
+                    if (hours != 0L) {
+                        timeFormat = timeFormatHoursMinutes
+                    } else {
+                        if (minutes != 0L) {
+                            timeFormat = timeFormatMinutes
                         }
+                    }
 
-                        private fun showPreparationInfoDialog() {
-                            dialogInfo = createSimpleAlertDialog(getString(R.string.dialog_start_preparation_text, preparationTime))
-                            showDialog(dialogInfo)
-                        }
-
-                        private fun createSimpleAlertDialog(message: String): AlertDialog {
-                            val builder = AlertDialog.Builder(this@CountdownActivity)
-                            builder.setMessage(message)
-                            return builder.create()
-                        }
-
-                        private fun setCountdownTimerColor(state: String) {
-                            val color = when (state) {
-                                COUNTDOWN_MODE_PREPARATION -> R.color.color_countdown_mode_preparation
-                                COUNTDOWN_MODE_FINISHED -> R.color.color_countdown_mode_finished
-                                else -> R.color.color_all_text
-                            }
-                            val resolvedColor = ContextCompat.getColor(this@CountdownActivity, color)
-                            text_view_countdown_timer_hour.setTextColor(resolvedColor)
-                            text_view_countdown_timer_minute.setTextColor(resolvedColor)
-                            text_view_countdown_timer_second.setTextColor(resolvedColor)
-                        }
-
-                        private fun updateCountdownTimerTextViews(millis: Long) {
-                            val hours = TimeUnit.MILLISECONDS.toHours(millis)
-                            val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(hours)
-                            val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.HOURS.toSeconds(hours) - TimeUnit.MINUTES.toSeconds(minutes)
-                            text_view_countdown_timer_hour.text = getString(R.string.countdown_timer_hour, hours)
-                            text_view_countdown_timer_minute.text = getString(R.string.countdown_timer_min, minutes)
-                            text_view_countdown_timer_second.text = getString(R.string.countdown_timer_sec, seconds)
-                        }
-
-                        private fun displayRouteOnMap(coordinates: List<LatLng>) {
-                            val routeBuilder = RouteBuilder(coordinates)
-                                    .startIcon(departureIcon)
-                                    .endIcon(destinationIcon)
-                            tomtomMap.clear()
-                            tomtomMap.addRoute(routeBuilder)
-                            tomtomMap.displayRoutesOverview()
-                        }
-
-                        private fun formatTimeFromSecondsDisplayWithSeconds(secondsTotal: Long): String {
-                            return formatTimeFromSeconds(secondsTotal, true)
-                        }
-
-                        private fun formatTimeFromSecondsDisplayWithoutSeconds(secondsTotal: Long): String {
-                            return formatTimeFromSeconds(secondsTotal, false)
-                        }
-
-                        private fun formatTimeFromSeconds(secondsTotal: Long, showSeconds: Boolean): String {
-                            var secondsTotal = secondsTotal
-                            val timeFormatHoursMinutes = "H'h' m'min'"
-                            val timeFormatMinutes = "m'min'"
-                            val timeFormatSeconds = " s'sec'"
-
-                            val hours = TimeUnit.SECONDS.toHours(secondsTotal)
-                            val minutes = TimeUnit.SECONDS.toMinutes(secondsTotal) - TimeUnit.HOURS.toMinutes(hours)
-                            var timeFormat = ""
-
-                            if (hours != 0L) {
-                                timeFormat = timeFormatHoursMinutes
-                            } else {
-                                if (minutes != 0L) {
-                                    timeFormat = timeFormatMinutes
-                                }
-                            }
-
-                            if (showSeconds) {
-                                timeFormat += timeFormatSeconds
-                            }
-                            secondsTotal = abs(secondsTotal)
-                            return DateFormat.format(timeFormat, TimeUnit.SECONDS.toMillis(secondsTotal)) as String
-                        }
-                    })
+                    if (showSeconds) {
+                        timeFormat += timeFormatSeconds
+                    }
+                    secondsTotal = abs(secondsTotal)
+                    return DateFormat.format(timeFormat, TimeUnit.SECONDS.toMillis(secondsTotal)) as String
+                }
+            })
         } else {
             timerHandler.removeCallbacks(requestRouteRunnable)
             timerHandler.postDelayed(requestRouteRunnable, ROUTE_RECALCULATION_DELAY.toLong())
@@ -335,8 +331,15 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun initTomTomServices() {
-        routingApi = OnlineRoutingApi.create(applicationContext)
-        (mapFragment as MapFragment).getAsyncMap(this)
+        routingApi = OnlineRoutingApi.create(applicationContext, BuildConfig.ROUTING_API_KEY)
+        val mapKeys = mapOf(ApiKeyType.MAPS_API_KEY to BuildConfig.MAPS_API_KEY)
+        val mapProperties = MapProperties.Builder().keys(mapKeys).build()
+        val mapFragment = MapFragment.newInstance(mapProperties)
+        supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.mapFragment, mapFragment)
+                .commit()
+        mapFragment.getAsyncMap(this)
     }
 
     private fun initToolbarSettings() {
@@ -387,7 +390,7 @@ class CountdownActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun createWarningSnackBar() {
         val view = findViewById<ViewGroup>(android.R.id.content)
         warningSnackbar = CustomSnackbar.make(view, BaseTransientBottomBar.LENGTH_INDEFINITE, R.layout.snackbar_recalculation_warning).apply {
-            this.setAction(getString(R.string.button_ok)) { v -> warningSnackbar.dismiss() }
+            this.setAction(getString(R.string.button_ok)) { warningSnackbar.dismiss() }
         }
         setCustomSnackbar(warningSnackbar)
     }

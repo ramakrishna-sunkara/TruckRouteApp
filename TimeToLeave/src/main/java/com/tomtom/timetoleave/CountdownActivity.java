@@ -21,28 +21,35 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 
 import com.tomtom.online.sdk.common.location.LatLng;
+import com.tomtom.online.sdk.common.util.DateFormatter;
+import com.tomtom.online.sdk.map.ApiKeyType;
 import com.tomtom.online.sdk.map.Icon;
 import com.tomtom.online.sdk.map.MapFragment;
+import com.tomtom.online.sdk.map.MapProperties;
 import com.tomtom.online.sdk.map.OnMapReadyCallback;
 import com.tomtom.online.sdk.map.RouteBuilder;
 import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.routing.OnlineRoutingApi;
 import com.tomtom.online.sdk.routing.RoutingApi;
-import com.tomtom.online.sdk.routing.data.FullRoute;
-import com.tomtom.online.sdk.routing.data.RouteQuery;
-import com.tomtom.online.sdk.routing.data.RouteQueryBuilder;
-import com.tomtom.online.sdk.routing.data.RouteResponse;
-import com.tomtom.online.sdk.routing.data.RouteType;
-import com.tomtom.online.sdk.routing.data.TravelMode;
+import com.tomtom.online.sdk.routing.RoutingException;
+import com.tomtom.online.sdk.routing.route.RouteCalculationDescriptor;
+import com.tomtom.online.sdk.routing.route.RouteCallback;
+import com.tomtom.online.sdk.routing.route.RoutePlan;
+import com.tomtom.online.sdk.routing.route.RouteSpecification;
+import com.tomtom.online.sdk.routing.route.description.RouteType;
+import com.tomtom.online.sdk.routing.route.RouteDescriptor;
+import com.tomtom.online.sdk.routing.route.description.TravelMode;
+import com.tomtom.online.sdk.routing.route.information.FullRoute;
+
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.observers.DisposableSingleObserver;
-import io.reactivex.schedulers.Schedulers;
 
 public class CountdownActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -139,206 +146,214 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
 
     private void requestRoute(final LatLng departure, final LatLng destination, TravelMode byWhat, Date arriveAt) {
         if (!isInPauseMode) {
-            RouteQuery routeQuery = new RouteQueryBuilder(departure, destination)
-                    .withRouteType(RouteType.FASTEST)
-                    .withConsiderTraffic(true)
-                    .withTravelMode(byWhat)
-                    .withArriveAt(arriveAt)
+            RouteDescriptor routeDescriptor = new RouteDescriptor.Builder()
+                    .routeType(RouteType.FASTEST)
+                    .considerTraffic(true)
+                    .travelMode(byWhat)
                     .build();
 
-            routingApi.planRoute(routeQuery)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new DisposableSingleObserver<RouteResponse>() {
-                        @Override
-                        public void onSuccess(RouteResponse routeResponse) {
-                            hideDialog(dialogInProgress);
-                            if (routeResponse.hasResults()) {
-                                FullRoute fullRoute = routeResponse.getRoutes().get(0);
-                                int currentTravelTime = fullRoute.getSummary().getTravelTimeInSeconds();
-                                if (previousTravelTime != currentTravelTime) {
-                                    int travelDifference = previousTravelTime - currentTravelTime;
-                                    if (previousTravelTime != 0) {
-                                        showWarningSnackbar(prepareWarningMessage(travelDifference));
-                                    }
-                                    previousTravelTime = currentTravelTime;
-                                    displayRouteOnMap(fullRoute.getCoordinates());
-                                    setupCountDownTimer(fullRoute.getSummary().getDepartureTimeWithZone().toDate());
-                                } else {
-                                    infoSnackbar.show();
+            RouteCalculationDescriptor routeCalculationDescriptor = new RouteCalculationDescriptor.Builder()
+                    .routeDescription(routeDescriptor)
+                    .arriveAt(arriveAt)
+                    .build();
+
+            RouteSpecification routeSpecification = new RouteSpecification.Builder(departure, destination)
+                    .routeCalculationDescriptor(routeCalculationDescriptor)
+                    .build();
+
+            routingApi.planRoute(routeSpecification, new RouteCallback() {
+                @Override
+                public void onSuccess(@NotNull RoutePlan routePlan) {
+                    hideDialog(dialogInProgress);
+
+                    if (!routePlan.getRoutes().isEmpty()) {
+                        FullRoute fullRoute = routePlan.getRoutes().get(0);
+                        int currentTravelTime = fullRoute.getSummary().getTravelTimeInSeconds();
+                        if (previousTravelTime != currentTravelTime) {
+                            int travelDifference = previousTravelTime - currentTravelTime;
+                            if (previousTravelTime != 0) {
+                                showWarningSnackbar(prepareWarningMessage(travelDifference));
+                            }
+                            previousTravelTime = currentTravelTime;
+                            displayRouteOnMap(fullRoute.getCoordinates());
+                            String departureTimeString = fullRoute.getSummary().getDepartureTime();
+                            setupCountDownTimer(new DateFormatter().formatWithTimeZone(departureTimeString).toDate());
+                        } else {
+                            infoSnackbar.show();
+                        }
+                    }
+                    timerHandler.removeCallbacks(requestRouteRunnable);
+                    timerHandler.postDelayed(requestRouteRunnable, ROUTE_RECALCULATION_DELAY);
+                }
+
+                @Override
+                public void onError(@NotNull RoutingException e) {
+                    hideDialog(dialogInProgress);
+                    Toast.makeText(CountdownActivity.this, getString(R.string.toast_error_message_cannot_find_route), Toast.LENGTH_LONG).show();
+                    CountdownActivity.this.finish();
+                }
+
+
+                private void setupCountDownTimer(Date departure) {
+                    if (isCountdownTimerSet()) {
+                        countDownTimer.cancel();
+                    }
+                    Date now = Calendar.getInstance().getTime();
+                    final int preparationTimeMillis = preparationTime * ONE_MINUTE_IN_MILLIS;
+                    long timeToLeave = departure.getTime() - now.getTime();
+                    countDownTimer = new CountDownTimer(timeToLeave, ONE_SECOND_IN_MILLIS) {
+                        public void onTick(long millisUntilFinished) {
+                            updateCountdownTimerTextViews(millisUntilFinished);
+                            if (!isPreparationMode && millisUntilFinished <= preparationTimeMillis) {
+                                isPreparationMode = true;
+                                setCountdownTimerColor(COUNTDOWN_MODE_PREPARATION);
+                                if (!isInPauseMode) {
+                                    showPreparationInfoDialog();
                                 }
                             }
+                        }
+
+                        public void onFinish() {
                             timerHandler.removeCallbacks(requestRouteRunnable);
-                            timerHandler.postDelayed(requestRouteRunnable, ROUTE_RECALCULATION_DELAY);
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                            hideDialog(dialogInProgress);
-                            Toast.makeText(CountdownActivity.this, getString(R.string.toast_error_message_cannot_find_route), Toast.LENGTH_LONG).show();
-                            CountdownActivity.this.finish();
-                        }
-
-                        private void setupCountDownTimer(Date departure) {
-                            if (isCountdownTimerSet()) {
-                                countDownTimer.cancel();
+                            setCountdownTimerColor(COUNTDOWN_MODE_FINISHED);
+                            if (!isInPauseMode) {
+                                createDialogWithCustomButtons();
                             }
-                            Date now = Calendar.getInstance().getTime();
-                            final int preparationTimeMillis = preparationTime * ONE_MINUTE_IN_MILLIS;
-                            long timeToLeave = departure.getTime() - now.getTime();
-                            countDownTimer = new CountDownTimer(timeToLeave, ONE_SECOND_IN_MILLIS) {
-                                public void onTick(long millisUntilFinished) {
-                                    updateCountdownTimerTextViews(millisUntilFinished);
-                                    if (!isPreparationMode && millisUntilFinished <= preparationTimeMillis) {
-                                        isPreparationMode = true;
-                                        setCountdownTimerColor(COUNTDOWN_MODE_PREPARATION);
-                                        if (!isInPauseMode) {
-                                            showPreparationInfoDialog();
-                                        }
-                                    }
-                                }
-
-                                public void onFinish() {
-                                    timerHandler.removeCallbacks(requestRouteRunnable);
-                                    setCountdownTimerColor(COUNTDOWN_MODE_FINISHED);
-                                    if (!isInPauseMode) {
-                                        createDialogWithCustomButtons();
-                                    }
-                                }
-                            }.start();
-                            textViewTravelTime.setText(getString(R.string.travel_time_text, formatTimeFromSecondsDisplayWithoutSeconds(previousTravelTime)));
                         }
+                    }.start();
+                    textViewTravelTime.setText(getString(R.string.travel_time_text, formatTimeFromSecondsDisplayWithoutSeconds(previousTravelTime)));
+                }
 
-                        private String prepareWarningMessage(int travelDifference) {
-                            String travelTimeDifference = formatTimeFromSecondsDisplayWithSeconds(travelDifference);
-                            return getString(R.string.dialog_recalculation_info, getTimeInfoWithPrefix(travelDifference, travelTimeDifference));
+                private String prepareWarningMessage(int travelDifference) {
+                    String travelTimeDifference = formatTimeFromSecondsDisplayWithSeconds(travelDifference);
+                    return getString(R.string.dialog_recalculation_info, getTimeInfoWithPrefix(travelDifference, travelTimeDifference));
+                }
+
+                private void showWarningSnackbar(String warningMessage) {
+                    warningSnackbar.setText(warningMessage);
+                    warningSnackbar.show();
+                }
+
+                private boolean isCountdownTimerSet() {
+                    return countDownTimer != null;
+                }
+
+                private String getTimeInfoWithPrefix(int travelDifference, String travelTimeDifference) {
+                    String prefix = (travelDifference < 0) ? "-" : "+";
+                    return prefix + travelTimeDifference;
+                }
+
+                private void createDialogWithCustomButtons() {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
+                    builder.setMessage(getString(R.string.dialog_time_to_leave))
+                            .setPositiveButton(R.string.dialog_on_my_way, (dialog, id) -> {
+                                hideDialog(dialogInfo);
+                                Intent intent = new Intent(CountdownActivity.this, SafeTravelsActivity.class);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton(R.string.dialog_whatever, (dialog, id) -> createDialogWithCustomLayout());
+                    hideDialog(dialogInfo);
+                    dialogInfo = builder.create();
+                    dialogInfo.setCanceledOnTouchOutside(false);
+                    showDialog(dialogInfo);
+                }
+
+                private void createDialogWithCustomLayout() {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
+                    LayoutInflater inflater = getLayoutInflater();
+
+                    builder.setView(inflater.inflate(R.layout.dialog_you_are_over_time, null))
+                            .setPositiveButton(R.string.dialog_next_time_ill_do_better, (dialog, id) -> {
+                                hideDialog(dialogInfo);
+                                Intent intent = new Intent(CountdownActivity.this, MainActivity.class);
+                                startActivity(intent);
+                            });
+                    hideDialog(dialogInfo);
+                    dialogInfo = builder.create();
+                    dialogInfo.setCanceledOnTouchOutside(false);
+                    showDialog(dialogInfo);
+                }
+
+                private void showPreparationInfoDialog() {
+                    dialogInfo = createSimpleAlertDialog(getString(R.string.dialog_start_preparation_text, preparationTime));
+                    showDialog(dialogInfo);
+                }
+
+                private AlertDialog createSimpleAlertDialog(String message) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
+                    builder.setMessage(message);
+                    return builder.create();
+                }
+
+                private void setCountdownTimerColor(String state) {
+                    int color;
+                    switch (state) {
+                        case COUNTDOWN_MODE_PREPARATION:
+                            color = R.color.color_countdown_mode_preparation;
+                            break;
+                        case COUNTDOWN_MODE_FINISHED:
+                            color = R.color.color_countdown_mode_finished;
+                            break;
+                        default:
+                            color = R.color.color_all_text;
+                            break;
+                    }
+                    int resolvedColor = ContextCompat.getColor(CountdownActivity.this, color);
+                    textViewCountDownTimerHour.setTextColor(resolvedColor);
+                    textViewCountDownTimerMin.setTextColor(resolvedColor);
+                    textViewCountDownTimerSec.setTextColor(resolvedColor);
+                }
+
+                private void updateCountdownTimerTextViews(long millis) {
+                    long hours = TimeUnit.MILLISECONDS.toHours(millis);
+                    long minutes = TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(hours);
+                    long seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.HOURS.toSeconds(hours) - TimeUnit.MINUTES.toSeconds(minutes);
+                    textViewCountDownTimerHour.setText(getString(R.string.countdown_timer_hour, hours));
+                    textViewCountDownTimerMin.setText(getString(R.string.countdown_timer_min, minutes));
+                    textViewCountDownTimerSec.setText(getString(R.string.countdown_timer_sec, seconds));
+                }
+
+                private void displayRouteOnMap(List<LatLng> coordinates) {
+                    RouteBuilder routeBuilder = new RouteBuilder(coordinates)
+                            .startIcon(departureIcon)
+                            .endIcon(destinationIcon);
+                    tomtomMap.clear();
+                    tomtomMap.addRoute(routeBuilder);
+                    tomtomMap.displayRoutesOverview();
+                }
+
+                private String formatTimeFromSecondsDisplayWithSeconds(long secondsTotal) {
+                    return formatTimeFromSeconds(secondsTotal, true);
+                }
+
+                private String formatTimeFromSecondsDisplayWithoutSeconds(long secondsTotal) {
+                    return formatTimeFromSeconds(secondsTotal, false);
+                }
+
+                private String formatTimeFromSeconds(long secondsTotal, boolean showSeconds) {
+                    final String TIME_FORMAT_HOURS_MINUTES = "H'h' m'min'";
+                    final String TIME_FORMAT_MINUTES = "m'min'";
+                    final String TIME_FORMAT_SECONDS = " s'sec'";
+
+                    long hours = TimeUnit.SECONDS.toHours(secondsTotal);
+                    long minutes = TimeUnit.SECONDS.toMinutes(secondsTotal) - TimeUnit.HOURS.toMinutes(hours);
+                    String timeFormat = "";
+
+                    if (hours != 0) {
+                        timeFormat = TIME_FORMAT_HOURS_MINUTES;
+                    } else {
+                        if (minutes != 0) {
+                            timeFormat = TIME_FORMAT_MINUTES;
                         }
+                    }
 
-                        private void showWarningSnackbar(String warningMessage) {
-                            warningSnackbar.setText(warningMessage);
-                            warningSnackbar.show();
-                        }
-
-                        private boolean isCountdownTimerSet() {
-                            return countDownTimer != null;
-                        }
-
-                        private String getTimeInfoWithPrefix(int travelDifference, String travelTimeDifference) {
-                            String prefix = (travelDifference < 0) ? "-" : "+";
-                            return prefix + travelTimeDifference;
-                        }
-
-                        private void createDialogWithCustomButtons() {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
-                            builder.setMessage(getString(R.string.dialog_time_to_leave))
-                                    .setPositiveButton(R.string.dialog_on_my_way, (dialog, id) -> {
-                                        hideDialog(dialogInfo);
-                                        Intent intent = new Intent(CountdownActivity.this, SafeTravelsActivity.class);
-                                        startActivity(intent);
-                                    })
-                                    .setNegativeButton(R.string.dialog_whatever, (dialog, id) -> createDialogWithCustomLayout());
-                            hideDialog(dialogInfo);
-                            dialogInfo = builder.create();
-                            dialogInfo.setCanceledOnTouchOutside(false);
-                            showDialog(dialogInfo);
-                        }
-
-                        private void createDialogWithCustomLayout() {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
-                            LayoutInflater inflater = getLayoutInflater();
-
-                            builder.setView(inflater.inflate(R.layout.dialog_you_are_over_time, null))
-                                    .setPositiveButton(R.string.dialog_next_time_ill_do_better, (dialog, id) -> {
-                                        hideDialog(dialogInfo);
-                                        Intent intent = new Intent(CountdownActivity.this, MainActivity.class);
-                                        startActivity(intent);
-                                    });
-                            hideDialog(dialogInfo);
-                            dialogInfo = builder.create();
-                            dialogInfo.setCanceledOnTouchOutside(false);
-                            showDialog(dialogInfo);
-                        }
-
-                        private void showPreparationInfoDialog() {
-                            dialogInfo = createSimpleAlertDialog(getString(R.string.dialog_start_preparation_text, preparationTime));
-                            showDialog(dialogInfo);
-                        }
-
-                        private AlertDialog createSimpleAlertDialog(String message) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(CountdownActivity.this);
-                            builder.setMessage(message);
-                            return builder.create();
-                        }
-
-                        private void setCountdownTimerColor(String state) {
-                            int color;
-                            switch (state) {
-                                case COUNTDOWN_MODE_PREPARATION:
-                                    color = R.color.color_countdown_mode_preparation;
-                                    break;
-                                case COUNTDOWN_MODE_FINISHED:
-                                    color = R.color.color_countdown_mode_finished;
-                                    break;
-                                default:
-                                    color = R.color.color_all_text;
-                                    break;
-                            }
-                            int resolvedColor = ContextCompat.getColor(CountdownActivity.this, color);
-                            textViewCountDownTimerHour.setTextColor(resolvedColor);
-                            textViewCountDownTimerMin.setTextColor(resolvedColor);
-                            textViewCountDownTimerSec.setTextColor(resolvedColor);
-                        }
-
-                        private void updateCountdownTimerTextViews(long millis) {
-                            long hours = TimeUnit.MILLISECONDS.toHours(millis);
-                            long minutes = TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(hours);
-                            long seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.HOURS.toSeconds(hours) - TimeUnit.MINUTES.toSeconds(minutes);
-                            textViewCountDownTimerHour.setText(getString(R.string.countdown_timer_hour, hours));
-                            textViewCountDownTimerMin.setText(getString(R.string.countdown_timer_min, minutes));
-                            textViewCountDownTimerSec.setText(getString(R.string.countdown_timer_sec, seconds));
-                        }
-
-                        private void displayRouteOnMap(List<LatLng> coordinates) {
-                            RouteBuilder routeBuilder = new RouteBuilder(coordinates)
-                                    .startIcon(departureIcon)
-                                    .endIcon(destinationIcon);
-                            tomtomMap.clear();
-                            tomtomMap.addRoute(routeBuilder);
-                            tomtomMap.displayRoutesOverview();
-                        }
-
-                        private String formatTimeFromSecondsDisplayWithSeconds(long secondsTotal) {
-                            return formatTimeFromSeconds(secondsTotal, true);
-                        }
-
-                        private String formatTimeFromSecondsDisplayWithoutSeconds(long secondsTotal) {
-                            return formatTimeFromSeconds(secondsTotal, false);
-                        }
-
-                        private String formatTimeFromSeconds(long secondsTotal, boolean showSeconds) {
-                            final String TIME_FORMAT_HOURS_MINUTES = "H'h' m'min'";
-                            final String TIME_FORMAT_MINUTES = "m'min'";
-                            final String TIME_FORMAT_SECONDS = " s'sec'";
-
-                            long hours = TimeUnit.SECONDS.toHours(secondsTotal);
-                            long minutes = TimeUnit.SECONDS.toMinutes(secondsTotal) - TimeUnit.HOURS.toMinutes(hours);
-                            String timeFormat = "";
-
-                            if (hours != 0) {
-                                timeFormat = TIME_FORMAT_HOURS_MINUTES;
-                            } else {
-                                if (minutes != 0) {
-                                    timeFormat = TIME_FORMAT_MINUTES;
-                                }
-                            }
-
-                            if (showSeconds) {
-                                timeFormat += TIME_FORMAT_SECONDS;
-                            }
-                            secondsTotal = Math.abs(secondsTotal);
-                            return (String) DateFormat.format(timeFormat, TimeUnit.SECONDS.toMillis(secondsTotal));
-                        }
-                    });
+                    if (showSeconds) {
+                        timeFormat += TIME_FORMAT_SECONDS;
+                    }
+                    secondsTotal = Math.abs(secondsTotal);
+                    return (String) DateFormat.format(timeFormat, TimeUnit.SECONDS.toMillis(secondsTotal));
+                }
+            });
         }
         else {
             timerHandler.removeCallbacks(requestRouteRunnable);
@@ -347,8 +362,18 @@ public class CountdownActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void initTomTomServices() {
-        routingApi = OnlineRoutingApi.create(getApplicationContext());
-        MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
+        routingApi = OnlineRoutingApi.create(this, BuildConfig.ROUTING_API_KEY);
+        Map<ApiKeyType, String> mapKeys = new HashMap<>();
+        mapKeys.put(ApiKeyType.MAPS_API_KEY, BuildConfig.MAPS_API_KEY);
+
+        MapProperties mapProperties = new MapProperties.Builder()
+                .keys(mapKeys)
+                .build();
+        MapFragment mapFragment = MapFragment.newInstance(mapProperties);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.mapFragment, mapFragment)
+                .commit();
         mapFragment.getAsyncMap(this);
     }
 

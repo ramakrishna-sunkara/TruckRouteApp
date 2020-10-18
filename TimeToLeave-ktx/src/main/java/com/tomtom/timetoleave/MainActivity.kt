@@ -24,7 +24,7 @@ import com.tomtom.online.sdk.common.permission.AndroidPermissionChecker
 import com.tomtom.online.sdk.location.FusedLocationSource
 import com.tomtom.online.sdk.location.LocationSource
 import com.tomtom.online.sdk.location.LocationUpdateListener
-import com.tomtom.online.sdk.routing.data.TravelMode
+import com.tomtom.online.sdk.routing.route.description.TravelMode
 import com.tomtom.online.sdk.search.OnlineSearchApi
 import com.tomtom.online.sdk.search.SearchApi
 import com.tomtom.online.sdk.search.data.fuzzy.FuzzySearchQueryBuilder
@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity(), LocationUpdateListener {
     }
 
     private fun initTomTomServices() {
-        searchApi = OnlineSearchApi.create(this)
+        searchApi = OnlineSearchApi.create(this, BuildConfig.SEARCH_API_KEY)
     }
 
     private fun initToolbarSettings() {

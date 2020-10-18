@@ -46,22 +46,22 @@
 
                     <AutoCompleteTextView
                         android:id="@+id/atv_main_departure_location"
-                        android:fontFamily="@font/gotham_book"
-                        android:textSize="@dimen/text_large"
-                        android:textColor="@color/color_all_text"
                         android:layout_width="@dimen/match_constraint_dimension"
                         android:layout_height="@dimen/main_autocomplete_input_height"
-                        android:layout_marginEnd="@dimen/spacing_large"
                         android:layout_marginStart="@dimen/spacing_large"
+                        android:layout_marginEnd="@dimen/spacing_large"
                         android:background="@drawable/background_with_border_main"
+                        android:fontFamily="@font/gotham_book"
+                        android:imeOptions="actionSearch"
                         android:inputType="textPersonName"
                         android:paddingStart="@dimen/spacing_medium"
                         android:paddingEnd="@dimen/spacing_xxxlarge"
-                        android:imeOptions="actionSearch"
+                        android:textColor="@color/color_all_text"
+                        android:textSize="@dimen/text_large"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/imageview_main_departure_icon"
-                        app:layout_constraintTop_toBottomOf="parent" />
+                        app:layout_constraintTop_toTopOf="parent" />
 
                     <ImageButton
                         android:id="@+id/button_departure_clear"
